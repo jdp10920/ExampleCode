@@ -1,0 +1,474 @@
+---
+title: "Project Stuff"
+format: docx
+editor: visual
+---
+
+```{r}
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+library(tidyverse)
+library(patchwork)
+library(caTools)
+library(neuralnet)
+library(stats)
+```
+
+```{r}
+df.train = read.csv("23-24 team data - training set.csv", stringsAsFactors = TRUE)
+df.test = read.csv("24-25 team data - testing set.csv", stringsAsFactors = TRUE)
+df.train
+```
+
+```{r}
+regTree = rpart(StandingsPoints ~ corsiPercentage + shotsOnGoalFor + shotAttemptsFor + 
+                  goalsFor + reboundGoalsFor + playContinuedInZoneFor + savedShotsOnGoalFor +
+                  penalityMinutesFor + faceOffsWonFor + hitsFor + takeawaysFor + giveawaysFor +
+                  lowDangerShotsFor + mediumDangerShotsFor + highDangerShotsFor +
+                  lowDangerGoalsFor + mediumDangerShotsFor + highDangerGoalsFor +
+                  dZoneGiveawaysFor + shotsOnGoalAgainst + goalsAgainst +
+                  playContinuedInZoneAgainst + savedShotsOnGoalAgainst + 
+                  penalityMinutesAgainst + faceOffsWonAgainst + hitsAgainst +
+                  takeawaysAgainst + giveawaysAgainst + lowDangerShotsAgainst +
+                  mediumDangerShotsAgainst + highDangerShotsAgainst + lowDangerGoalsAgainst +
+                  mediumDangerGoalsAgainst + highDangerGoalsAgainst + dZoneGiveawaysAgainst, data = df.train, method = "anova",
+                minbucket = 1, cp = 0.01)
+
+rpart.plot(regTree, digits=-2)
+```
+
+```{r}
+pred = predict(regTree, newdata=df.test)  # use TEST partition 
+SSE = sum((df.test$StandingsPoints - pred)^2)
+
+meanStandingsPoints = mean(df.train$StandingsPoints )  # Use the TRAIN mean as the benchmark
+
+SST = sum((df.test$StandingsPoints  - meanStandingsPoints)^2)
+OSR2 = 1 - SSE/SST
+OSR2
+```
+
+```{r}
+x <- df.train[, c(
+  "corsiPercentage", "shotsOnGoalFor", "shotAttemptsFor",
+  "goalsFor", "reboundGoalsFor", "playContinuedInZoneFor",
+  "savedShotsOnGoalFor", "penalityMinutesFor", "faceOffsWonFor",
+  "hitsFor", "takeawaysFor", "giveawaysFor", "lowDangerShotsFor",
+  "mediumDangerShotsFor", "highDangerShotsFor", "lowDangerGoalsFor",
+  "mediumDangerShotsFor", "highDangerGoalsFor", "dZoneGiveawaysFor",
+  "shotsOnGoalAgainst", "goalsAgainst", "playContinuedInZoneAgainst",
+  "savedShotsOnGoalAgainst", "penalityMinutesAgainst", "faceOffsWonAgainst",
+  "hitsAgainst", "takeawaysAgainst", "giveawaysAgainst",
+  "lowDangerShotsAgainst", "mediumDangerShotsAgainst",
+  "highDangerShotsAgainst", "lowDangerGoalsAgainst",
+  "mediumDangerGoalsAgainst", "highDangerGoalsAgainst",
+  "dZoneGiveawaysAgainst"
+)]
+x
+
+```
+
+```{r}
+x <- df.train[, c(
+  "corsiPercentage", "shotsOnGoalFor", "shotAttemptsFor",
+  "goalsFor", "reboundGoalsFor", "playContinuedInZoneFor",
+  "savedShotsOnGoalFor", "penalityMinutesFor", "faceOffsWonFor",
+  "hitsFor", "takeawaysFor", "giveawaysFor", "lowDangerShotsFor",
+  "mediumDangerShotsFor", "highDangerShotsFor", "lowDangerGoalsFor",
+  "mediumDangerShotsFor", "highDangerGoalsFor", "dZoneGiveawaysFor",
+  "shotsOnGoalAgainst", "goalsAgainst", "playContinuedInZoneAgainst",
+  "savedShotsOnGoalAgainst", "penalityMinutesAgainst", "faceOffsWonAgainst",
+  "hitsAgainst", "takeawaysAgainst", "giveawaysAgainst",
+  "lowDangerShotsAgainst", "mediumDangerShotsAgainst",
+  "highDangerShotsAgainst", "lowDangerGoalsAgainst",
+  "mediumDangerGoalsAgainst", "highDangerGoalsAgainst",
+  "dZoneGiveawaysAgainst"
+)]
+
+y = df.train$StandingsPoints
+
+set.seed(20, sample.kind="Rejection")
+tuneRF(x, y, mtryStart = 10, stepFactor = 1.25, ntreeTry=500, nodesize=1, improve=0.01)
+```
+
+```{r}
+set.seed(20, sample.kind="Rejection")
+rf_model = randomForest(StandingsPoints ~ corsiPercentage + shotsOnGoalFor + shotAttemptsFor + 
+                  goalsFor + reboundGoalsFor + playContinuedInZoneFor + savedShotsOnGoalFor +
+                  penalityMinutesFor + faceOffsWonFor + hitsFor + takeawaysFor + giveawaysFor +
+                  lowDangerShotsFor + mediumDangerShotsFor + highDangerShotsFor +
+                  lowDangerGoalsFor + mediumDangerShotsFor + highDangerGoalsFor +
+                  dZoneGiveawaysFor + shotsOnGoalAgainst + goalsAgainst +
+                  playContinuedInZoneAgainst + savedShotsOnGoalAgainst + 
+                  penalityMinutesAgainst + faceOffsWonAgainst + hitsAgainst +
+                  takeawaysAgainst + giveawaysAgainst + lowDangerShotsAgainst +
+                  mediumDangerShotsAgainst + highDangerShotsAgainst + lowDangerGoalsAgainst +
+                  mediumDangerGoalsAgainst + highDangerGoalsAgainst + dZoneGiveawaysAgainst, 
+                      data=df.train, 
+                      ntree=500,
+                      nodesize=1,
+                      mtry=27)
+```
+
+```{r}
+# Make margins bigger on the right and reduce text size
+par(mar=c(5, 4, 4, 8))  # bottom, left, top, right margins
+varImpPlot(rf_model, cex=0.7)  # smaller text for variable names
+```
+
+```{r}
+#Predictions for the Random Forest
+pred_rf = predict(rf_model, newdata=df.test)
+SSE_rf = sum((df.test$StandingsPoints - pred_rf)^2)
+SST_rf = sum((df.test$StandingsPoints - meanStandingsPoints)^2)
+OSR2_rf = 1 - SSE_rf/SST_rf
+OSR2_rf
+
+# Predictions for the Regression Tree
+pred = predict(regTree, newdata=df.test)
+SSE = sum((df.test$StandingsPoints - pred)^2)
+meanStandingsPoints = mean(df.train$StandingsPoints)
+SST = sum((df.test$StandingsPoints - meanStandingsPoints)^2)
+OSR2 = 1 - SSE/SST
+OSR2
+```
+
+## Tuning first RF model:
+
+```{r}
+set.seed(123, sample.kind = "Rejection")
+rf_ini = randomForest(StandingsPoints ~ corsiPercentage + shotsOnGoalFor + shotAttemptsFor + 
+                  goalsFor + reboundGoalsFor + playContinuedInZoneFor + savedShotsOnGoalFor +
+                  penalityMinutesFor + faceOffsWonFor + hitsFor + takeawaysFor + giveawaysFor +
+                  lowDangerShotsFor + mediumDangerShotsFor + highDangerShotsFor +
+                  lowDangerGoalsFor + mediumDangerShotsFor + highDangerGoalsFor +
+                  dZoneGiveawaysFor + shotsOnGoalAgainst + goalsAgainst +
+                  playContinuedInZoneAgainst + savedShotsOnGoalAgainst + 
+                  penalityMinutesAgainst + faceOffsWonAgainst + hitsAgainst +
+                  takeawaysAgainst + giveawaysAgainst + lowDangerShotsAgainst +
+                  mediumDangerShotsAgainst + highDangerShotsAgainst + lowDangerGoalsAgainst +
+                  mediumDangerGoalsAgainst + highDangerGoalsAgainst + dZoneGiveawaysAgainst, 
+                      data=df.train, 
+                      ntree=20,
+                      nodesize=1,
+                      mtry=27)
+plot(rf_ini)
+```
+
+```{r}
+x <- df.train[, c(
+  "corsiPercentage", "shotsOnGoalFor", "shotAttemptsFor",
+  "goalsFor", "reboundGoalsFor", "playContinuedInZoneFor",
+  "savedShotsOnGoalFor", "penalityMinutesFor", "faceOffsWonFor",
+  "hitsFor", "takeawaysFor", "giveawaysFor", "lowDangerShotsFor",
+  "mediumDangerShotsFor", "highDangerShotsFor", "lowDangerGoalsFor",
+  "mediumDangerShotsFor", "highDangerGoalsFor", "dZoneGiveawaysFor",
+  "shotsOnGoalAgainst", "goalsAgainst", "playContinuedInZoneAgainst",
+  "savedShotsOnGoalAgainst", "penalityMinutesAgainst", "faceOffsWonAgainst",
+  "hitsAgainst", "takeawaysAgainst", "giveawaysAgainst",
+  "lowDangerShotsAgainst", "mediumDangerShotsAgainst",
+  "highDangerShotsAgainst", "lowDangerGoalsAgainst",
+  "mediumDangerGoalsAgainst", "highDangerGoalsAgainst",
+  "dZoneGiveawaysAgainst"
+)]
+
+y = df.train$StandingsPoints
+
+set.seed(20, sample.kind="Rejection")
+tuneRF(x, y, mtryStart = 10, stepFactor = 1.25, ntreeTry=15, nodesize=1, improve=0.01)
+```
+
+```{r}
+set.seed(20, sample.kind="Rejection")
+rf_model = randomForest(StandingsPoints ~ corsiPercentage + shotsOnGoalFor + shotAttemptsFor + 
+                  goalsFor + reboundGoalsFor + playContinuedInZoneFor + savedShotsOnGoalFor +
+                  penalityMinutesFor + faceOffsWonFor + hitsFor + takeawaysFor + giveawaysFor +
+                  lowDangerShotsFor + mediumDangerShotsFor + highDangerShotsFor +
+                  lowDangerGoalsFor + mediumDangerShotsFor + highDangerGoalsFor +
+                  dZoneGiveawaysFor + shotsOnGoalAgainst + goalsAgainst +
+                  playContinuedInZoneAgainst + savedShotsOnGoalAgainst + 
+                  penalityMinutesAgainst + faceOffsWonAgainst + hitsAgainst +
+                  takeawaysAgainst + giveawaysAgainst + lowDangerShotsAgainst +
+                  mediumDangerShotsAgainst + highDangerShotsAgainst + lowDangerGoalsAgainst +
+                  mediumDangerGoalsAgainst + highDangerGoalsAgainst + dZoneGiveawaysAgainst, 
+                      data=df.train, 
+                      ntree=100,
+                      nodesize=1,
+                      mtry=10)
+```
+
+```{r}
+# Make margins bigger on the right and reduce text size
+par(mar=c(5, 4, 4, 8))  # bottom, left, top, right margins
+varImpPlot(rf_model, cex=0.7)  # smaller text for variable names
+```
+
+```{r}
+#Predictions for the Random Forest
+pred_rf = predict(rf_model, newdata=df.test)
+SSE_rf = sum((df.test$StandingsPoints - pred_rf)^2)
+SST_rf = sum((df.test$StandingsPoints - meanStandingsPoints)^2)
+OSR2_rf = 1 - SSE_rf/SST_rf
+OSR2_rf
+
+# Predictions for the Regression Tree
+pred = predict(regTree, newdata=df.test)
+SSE = sum((df.test$StandingsPoints - pred)^2)
+meanStandingsPoints = mean(df.train$StandingsPoints)
+SST = sum((df.test$StandingsPoints - meanStandingsPoints)^2)
+OSR2 = 1 - SSE/SST
+OSR2
+```
+
+## RF model with goals against and goals for taken out:
+
+```{r}
+set.seed(20, sample.kind = "Rejection")
+rf_ini = randomForest(StandingsPoints ~ corsiPercentage + shotsOnGoalFor + shotAttemptsFor + 
+                  reboundGoalsFor + playContinuedInZoneFor + savedShotsOnGoalFor +
+                  penalityMinutesFor + faceOffsWonFor + hitsFor + takeawaysFor + giveawaysFor +
+                  lowDangerShotsFor + mediumDangerShotsFor + highDangerShotsFor +
+                  lowDangerGoalsFor + mediumDangerShotsFor + highDangerGoalsFor +
+                  dZoneGiveawaysFor + shotsOnGoalAgainst + 
+                  playContinuedInZoneAgainst + savedShotsOnGoalAgainst + 
+                  penalityMinutesAgainst + faceOffsWonAgainst + hitsAgainst +
+                  takeawaysAgainst + giveawaysAgainst + lowDangerShotsAgainst +
+                  mediumDangerShotsAgainst + highDangerShotsAgainst + lowDangerGoalsAgainst +
+                  mediumDangerGoalsAgainst + highDangerGoalsAgainst + dZoneGiveawaysAgainst, 
+                      data=df.train, 
+                      ntree=30,
+                      nodesize=1,
+                      mtry=10)
+plot(rf_ini)
+```
+
+```{r}
+x <- df.train[, c(
+  "corsiPercentage", "shotsOnGoalFor", "shotAttemptsFor",
+  "reboundGoalsFor", "playContinuedInZoneFor",
+  "savedShotsOnGoalFor", "penalityMinutesFor", "faceOffsWonFor",
+  "hitsFor", "takeawaysFor", "giveawaysFor", "lowDangerShotsFor",
+  "mediumDangerShotsFor", "highDangerShotsFor", "lowDangerGoalsFor",
+  "mediumDangerShotsFor", "highDangerGoalsFor", "dZoneGiveawaysFor",
+  "shotsOnGoalAgainst", "playContinuedInZoneAgainst",
+  "savedShotsOnGoalAgainst", "penalityMinutesAgainst", "faceOffsWonAgainst",
+  "hitsAgainst", "takeawaysAgainst", "giveawaysAgainst",
+  "lowDangerShotsAgainst", "mediumDangerShotsAgainst",
+  "highDangerShotsAgainst", "lowDangerGoalsAgainst",
+  "mediumDangerGoalsAgainst", "highDangerGoalsAgainst",
+  "dZoneGiveawaysAgainst"
+)]
+
+y = df.train$StandingsPoints
+
+set.seed(20, sample.kind="Rejection")
+tuneRF(x, y, mtryStart = 10, stepFactor = 1.25, ntreeTry=15, nodesize=1, improve=0.01)
+```
+
+```{r}
+set.seed(20, sample.kind="Rejection")
+rf_model = randomForest(StandingsPoints ~ corsiPercentage + shotsOnGoalFor + shotAttemptsFor + 
+                  reboundGoalsFor + playContinuedInZoneFor + savedShotsOnGoalFor +
+                  penalityMinutesFor + faceOffsWonFor + hitsFor + takeawaysFor + giveawaysFor +
+                  lowDangerShotsFor + mediumDangerShotsFor + highDangerShotsFor +
+                  lowDangerGoalsFor + mediumDangerShotsFor + highDangerGoalsFor +
+                  dZoneGiveawaysFor + shotsOnGoalAgainst + 
+                  playContinuedInZoneAgainst + savedShotsOnGoalAgainst + 
+                  penalityMinutesAgainst + faceOffsWonAgainst + hitsAgainst +
+                  takeawaysAgainst + giveawaysAgainst + lowDangerShotsAgainst +
+                  mediumDangerShotsAgainst + highDangerShotsAgainst + lowDangerGoalsAgainst +
+                  mediumDangerGoalsAgainst + highDangerGoalsAgainst + dZoneGiveawaysAgainst, 
+                      data=df.train, 
+                      ntree=500,
+                      nodesize=1,
+                      mtry=7)
+```
+
+```{r}
+par(mar=c(5, 4, 4, 8))  # bottom, left, top, right margins
+varImpPlot(rf_model, cex=0.7)  # smaller text for variable names
+```
+
+```{r}
+
+partialPlot(rf_model, pred.data = df.train, x.var = "mediumDangerShotsAgainst")
+```
+
+```{r}
+
+```
+
+```{r}
+#Predictions for the Random Forest 1
+OSR2_rf
+
+# Predictions for the Regression Tree
+pred = predict(regTree, newdata=df.test)
+SSE = sum((df.test$StandingsPoints - pred)^2)
+meanStandingsPoints = mean(df.train$StandingsPoints)
+SST = sum((df.test$StandingsPoints - meanStandingsPoints)^2)
+OSR2 = 1 - SSE/SST
+OSR2
+
+# prediction for most recent random forest
+pred_rf = predict(rf_model, newdata=df.test)
+SSE_rf = sum((df.test$StandingsPoints - pred_rf)^2)
+SST_rf = sum((df.test$StandingsPoints - meanStandingsPoints)^2)
+OSR2_rf2 = 1 - SSE_rf/SST_rf
+OSR2_rf2
+```
+
+```{r}
+model <- lm(StandingsPoints ~ corsiPercentage  + shotAttemptsFor + 
+                  goalsFor + reboundGoalsFor + playContinuedInZoneFor + 
+                  faceOffsWonFor + hitsFor + 
+                  
+                  mediumDangerGoalsFor + 
+                  goalsAgainst +
+                  savedShotsOnGoalAgainst + 
+                  penalityMinutesAgainst + hitsAgainst +
+                  
+                  
+                  mediumDangerGoalsAgainst , data = df.train)
+summary(model)
+
+# Perform stepwise regression
+#direction can be both, backward or forward
+#trace can be set to 0 to only display final result or higher to display more information
+step_model <- stats::step(model, direction = "backward", trace = 0)
+#backward starts with everything and drops non-significant values. 
+
+
+# View the summary of the stepwise model
+summary(step_model)
+```
+
+```{r}
+# Train model
+
+# Predict on test set
+pred <- predict(step_model, newdata = df.test)
+
+# Compute R2 manually
+y_true <- df.test$StandingsPoints
+SSE <- sum((y_true - pred)^2)
+SST <- sum((y_true - mean(y_true))^2)
+R2_test <- 1 - SSE/SST
+
+R2_test
+
+```
+
+## ANN
+
+```{r}
+library(patchwork)
+library(caTools)
+library(neuralnet)
+```
+
+preprocessing:
+
+```{r}
+df_train <- subset(df.train, select = -c(team, team.1, season, name, position, games_played,  iceTime, situation)) 
+df_test <- subset(df.test, select = -c(team, team.1, season, name, position, games_played,  iceTime, situation)) 
+maxVals = apply(df_train, 2, max)
+minVals = apply(df_train, 2, min)
+df_train
+```
+
+```{r}
+scaled_train = as.data.frame(scale(df_train, center = minVals, 
+                                scale = maxVals - minVals))
+
+scaled_test = as.data.frame(scale(df_test, center = minVals, 
+                                     scale = maxVals - minVals))
+```
+
+```{r}
+num_train <- names(df_train)[sapply(df_train, is.numeric)]
+num_test  <- names(df_test)[sapply(df_test, is.numeric)]
+
+setdiff(num_train, num_test)  # columns missing in test
+setdiff(num_test, num_train)
+```
+
+```{r}
+# NO HIDDEN LAYER 
+set.seed(20, sample.kind="Rejection")
+
+neuralzero = neuralnet(StandingsPoints ~ corsiPercentage + shotsOnGoalFor + shotAttemptsFor + 
+                  goalsFor + reboundGoalsFor + playContinuedInZoneFor + savedShotsOnGoalFor +
+                  penalityMinutesFor + faceOffsWonFor + hitsFor + takeawaysFor + giveawaysFor +
+                  lowDangerShotsFor + mediumDangerShotsFor + highDangerShotsFor +
+                  lowDangerGoalsFor + mediumDangerShotsFor + highDangerGoalsFor +
+                  dZoneGiveawaysFor + shotsOnGoalAgainst + goalsAgainst +
+                  playContinuedInZoneAgainst + savedShotsOnGoalAgainst + 
+                  penalityMinutesAgainst + faceOffsWonAgainst + hitsAgainst +
+                  takeawaysAgainst + giveawaysAgainst + lowDangerShotsAgainst +
+                  mediumDangerShotsAgainst + highDangerShotsAgainst + lowDangerGoalsAgainst +
+                  mediumDangerGoalsAgainst + highDangerGoalsAgainst + dZoneGiveawaysAgainst, data= scaled_train, hidden=0,linear.output=T, threshold=0.01, stepmax=10000, lifesign='full', lifesign.step=500)
+summary(neuralzero)
+ plot(neuralzero)
+```
+
+```{r}
+StandingsPoints.test = predict(neuralzero, newdata=scaled_test)
+summary(StandingsPoints.test)
+
+m = min(df.train$StandingsPoints)
+M = max(df.train$StandingsPoints)
+
+StandingsPoints.nn = (StandingsPoints.test * (M - m)) + m
+
+summary(StandingsPoints.nn)
+
+train.mean = mean(df.train$StandingsPoints)
+SSE.test = sum((StandingsPoints.nn - df.test$StandingsPoints)^2)
+SST.test = sum((train.mean - df.test$StandingsPoints)^2)
+
+OSR2_ann_zero <- 1 - SSE.test/SST.test
+
+cat("\n \n OSR2 for the Simple NN is: \n")
+OSR2_ann_zero
+```
+
+```{r}
+set.seed(20, sample.kind="Rejection")
+
+neuralzero = neuralnet(StandingsPoints ~ corsiPercentage + shotsOnGoalFor + shotAttemptsFor + 
+                  goalsFor + reboundGoalsFor + playContinuedInZoneFor + savedShotsOnGoalFor +
+                  penalityMinutesFor + faceOffsWonFor + hitsFor + takeawaysFor + giveawaysFor +
+                  lowDangerShotsFor + mediumDangerShotsFor + highDangerShotsFor +
+                  lowDangerGoalsFor + mediumDangerShotsFor + highDangerGoalsFor +
+                  dZoneGiveawaysFor + shotsOnGoalAgainst + goalsAgainst +
+                  playContinuedInZoneAgainst + savedShotsOnGoalAgainst + 
+                  penalityMinutesAgainst + faceOffsWonAgainst + hitsAgainst +
+                  takeawaysAgainst + giveawaysAgainst + lowDangerShotsAgainst +
+                  mediumDangerShotsAgainst + highDangerShotsAgainst + lowDangerGoalsAgainst +
+                  mediumDangerGoalsAgainst + highDangerGoalsAgainst + dZoneGiveawaysAgainst, data= scaled_train, hidden=3,linear.output=T, threshold=0.02, stepmax=10000, lifesign='full', lifesign.step=500)
+summary(neuralzero)
+ plot(neuralzero)
+```
+
+```{r}
+StandingsPoints.test = predict(neuralzero, newdata=scaled_test)
+summary(StandingsPoints.test)
+
+m = min(df.train$StandingsPoints)
+M = max(df.train$StandingsPoints)
+
+StandingsPoints.nn = (StandingsPoints.test * (M - m)) + m
+
+summary(StandingsPoints.nn)
+
+train.mean = mean(df.train$StandingsPoints)
+SSE.test = sum((StandingsPoints.nn - df.test$StandingsPoints)^2)
+SST.test = sum((train.mean - df.test$StandingsPoints)^2)
+
+OSR2_ann_zero <- 1 - SSE.test/SST.test
+
+cat("\n \n OSR2 for the Simple NN is: \n")
+OSR2_ann_zero
+```
